@@ -602,8 +602,9 @@ class Session(SessionRedirectMixin):
             hostname to the URL of the proxy.
         :param hooks: (optional) Dictionary mapping hook name to one event or
             list of events, event must be callable.
-        :param stream: (optional) whether to immediately download the response
-            content. Defaults to ``False``.
+        :param stream: (optional) Whether to use streamed response content.
+            Defaults to ``False``. When ``False``, the response content is
+            immediately downloaded.
         :param verify: (optional) Either a boolean, in which case it controls whether we verify
             the server's TLS certificate, or a string, in which case it must be a path
             to a CA bundle to use. Defaults to ``True``. When set to
