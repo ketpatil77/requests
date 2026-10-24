@@ -428,6 +428,63 @@ class TestRequests:
         # Sending a request with cookies should not add cookies to the session
         assert not s.cookies
 
+    @pytest.mark.parametrize(
+        "jar_type", (requests.cookies.RequestsCookieJar, cookielib.CookieJar)
+    )
+    def test_request_none_cookie_omits_session_cookies(self, jar_type):
+        s = requests.Session()
+        s.cookies = jar_type()
+        for domain, path in (
+            ("example.com", "/"),
+            ("example.com", "/nested"),
+            ("other.test", "/"),
+        ):
+            s.cookies.set_cookie(
+                requests.cookies.create_cookie(
+                    "omit", "session", domain=domain, path=path
+                )
+            )
+        s.cookies.set_cookie(requests.cookies.create_cookie("keep", "session"))
+        cookies = {"omit": None, "new": "request"}
+
+        prepared = s.prepare_request(
+            requests.Request("GET", "https://example.com/nested", cookies=cookies)
+        )
+
+        assert prepared.headers["Cookie"] == "keep=session; new=request"
+        assert all(cookie.name != "omit" for cookie in prepared._cookies)
+        assert cookies == {"omit": None, "new": "request"}
+        assert len([cookie for cookie in s.cookies if cookie.name == "omit"]) == 3
+        assert (
+            s.prepare_request(requests.Request("GET", "https://example.com/")).headers[
+                "Cookie"
+            ]
+            == "omit=session; keep=session"
+        )
+
+    def test_request_none_cookie_without_session_cookie_is_omitted(self):
+        prepared = requests.Session().prepare_request(
+            requests.Request("GET", "https://example.com/", cookies={"omit": None})
+        )
+        assert "Cookie" not in prepared.headers
+
+    def test_request_empty_cookie_value_is_preserved(self):
+        s = requests.Session()
+        s.cookies["empty"] = "session"
+        prepared = s.prepare_request(
+            requests.Request("GET", "https://example.com/", cookies={"empty": ""})
+        )
+        assert prepared.headers["Cookie"] == "empty="
+        assert s.cookies["empty"] == "session"
+
+    def test_request_cookiejar_preserves_valueless_cookie(self):
+        cookies = cookielib.CookieJar()
+        cookies.set_cookie(requests.cookies.create_cookie("valueless", None))
+        prepared = requests.Session().prepare_request(
+            requests.Request("GET", "https://example.com/", cookies=cookies)
+        )
+        assert prepared.headers["Cookie"] == "valueless"
+
     def test_generic_cookiejar_works(self, httpbin):
         cj = cookielib.CookieJar()
         cookiejar_from_dict({"foo": "bar"}, cj)

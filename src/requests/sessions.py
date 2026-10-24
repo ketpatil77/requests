@@ -26,6 +26,7 @@ from .cookies import (
     cookiejar_from_dict,
     extract_cookies_to_jar,
     merge_cookies,
+    remove_cookie_by_name,
 )
 from .exceptions import (
     ChunkedEncodingError,
@@ -531,6 +532,13 @@ class Session(SessionRedirectMixin):
         merged_cookies = merge_cookies(
             merge_cookies(RequestsCookieJar(), self.cookies), cookies
         )
+
+        # A dictionary's None values omit session cookies for this request.
+        # Preserve valueless cookies explicitly supplied in a CookieJar.
+        if not isinstance(request.cookies, cookielib.CookieJar):
+            for cookie in cookies:
+                if cookie.value is None:
+                    remove_cookie_by_name(merged_cookies, cookie.name)
 
         # Set environment's basic authentication if not explicitly set.
         auth = request.auth

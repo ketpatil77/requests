@@ -79,6 +79,11 @@ exited, even if unhandled exceptions occurred.
     do this, you simply set that key's value to ``None`` in the method-level
     parameter. It will automatically be omitted.
 
+    For a ``cookies`` dictionary, this omits all session cookies with the
+    given name, across domains and paths, without changing the session's
+    cookie jar. Use an empty string to send an empty cookie value instead.
+    Passing a ``CookieJar`` retains its existing valueless-cookie behavior.
+
 All values that are contained within a session are directly available to you.
 See the :ref:`Session API Docs <sessionapi>` to learn more.
 
